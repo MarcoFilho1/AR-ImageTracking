@@ -1,16 +1,26 @@
-
 <!doctype html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MindAR Debug</title>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://unpkg.com/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
-  <script src="https://unpkg.com/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
-  <style>body{margin:0;overflow:hidden} a-scene{position:fixed;inset:0} #ui{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);color:#fff} #log{position:fixed;left:8px;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#0f0;font:12px monospace;padding:8px}</style>
+  <script src="./libs/mindar-image.prod.js"></script>
+  <script src="./libs/mindar-image-aframe.prod.js"></script>
+  <style>
+    body{margin:0;overflow:hidden}
+    a-scene{position:fixed;inset:0}
+    #ui{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);color:#fff;font-family:system-ui}
+    #log{position:fixed;left:8px;right:8px;bottom:8px;background:rgba(0,0,0,.7);color:#0f0;font:12px monospace;padding:8px;max-height:45%;overflow:auto;white-space:pre-wrap}
+    button{padding:12px 16px;border:0;border-radius:10px}
+  </style>
 </head>
 <body>
-  <div id="ui"><button id="startBtn" disabled>Start AR</button></div>
+  <div id="ui">
+    <div>
+      <h3>Toque em Start para iniciar</h3>
+      <button id="startBtn" disabled>Start</button>
+    </div>
+  </div>
   <div id="log"></div>
 
   <a-scene
@@ -20,38 +30,51 @@
     embedded>
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-plane width="1" height="0.552" material="color: blue; opacity: .5; transparent: true"></a-plane>
+      <a-box depth="0.05" width="1" height="0.6"
+             material="opacity:.8;transparent:true;color:#39f"></a-box>
+      <a-text value="FOUND!" align="center" position="0 0.4 0.03"></a-text>
     </a-entity>
   </a-scene>
 
   <script>
-    const log = m => document.querySelector('#log').textContent += (typeof m==='string'?m:JSON.stringify(m))+"\n";
+    const logEl = document.getElementById('log');
+    const log = (m)=>{ console.log(m); logEl.textContent += (typeof m==='string'?m:JSON.stringify(m))+"\n"; }
     const scene = document.querySelector('a-scene');
     const btn = document.getElementById('startBtn');
 
-    // habilita o botão somente quando o componente existir
-    scene.addEventListener('loaded', () => {
-      const ready = !!scene.components['mindar-image'];
-      if (!ready) { log('?? mindar-image não montou ainda'); return; }
-      btn.disabled = false;
-      log('? mindar-image pronto');
+    // Habilita o botão apenas quando o componente estiver montado
+    scene.addEventListener('loaded', ()=>{
+      const comps = Object.keys(scene.components||{});
+      log('a-scene loaded. Components: '+comps.join(', '));
+      if (scene.components['mindar-image']) {
+        log('mindar-image montado');
+        btn.disabled = false;
+      } else {
+        log(' mindar-image NÃO montou (ver ordem dos scripts)');
+      }
     });
 
-    scene.addEventListener('arReady', ()=>log('? arReady'));
-    scene.addEventListener('arError', e=>log('? arError: '+(e?.detail?.message||'')));
+    // Eventos do MindAR
+    scene.addEventListener('arReady', ()=>log('arReady'));
+    scene.addEventListener('arError', e=>log('arError: '+(e?.detail?.message||'')));
+    scene.addEventListener('targetFound', e=>log(' targetFound '+JSON.stringify(e.detail)));
+    scene.addEventListener('targetLost', e=>log('targetLost '+JSON.stringify(e.detail)));
 
-    btn.onclick = async () => {
+    btn.addEventListener('click', async ()=>{
+      log('?? botão clicado');
       try {
-        // garante que o arquivo existe (evita 404 silencioso)
-        const head = await fetch('./targets.mind', {method:'HEAD'});
-        if (!head.ok) { log(`? targets.mind não encontrado (${head.status})`); return; }
+        const res = await fetch('./targets.mind', {method:'HEAD'});
+        log('HEAD ./targets.mind ? '+res.status);
+        if (!res.ok) { log('? targets.mind não encontrado/caminho errado'); return; }
 
-        // chama o start somente quando o componente existe
+        // Start MindAR
         await scene.components['mindar-image'].start();
         document.getElementById('ui').style.display='none';
-        log('?? câmera iniciada');
-      } catch (e) { log('? start error: '+e); }
-    };
+        log('câmera iniciada');
+      } catch (e) {
+        log('start() falhou: '+(e.stack||e));
+      }
+    });
   </script>
 </body>
 </html>
