@@ -1,76 +1,39 @@
 <!doctype html>
 <html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MindAR Debug</title>
-  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://unpkg.com/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <style>
-    body{margin:0;overflow:hidden}
-    a-scene{position:fixed;inset:0}
-    #ui{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);color:#fff;font-family:system-ui;z-index:10}
-    #log{position:fixed;left:8px;right:8px;bottom:8px;background:rgba(0,0,0,.7);color:#0f0;font:12px monospace;padding:8px;max-height:45%;overflow:auto;white-space:pre-wrap;z-index:11}
-    button{padding:12px 16px;border:0;border-radius:10px}
-  </style>
-</head>
-<body>
-  <div id="ui">
-    <div>
-      <h3>Toque em Start para iniciar</h3>
-      <button id="startBtn" disabled>Start</button>
-    </div>
-  </div>
-  <div id="log"></div>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MindAR AutoStart</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>body{margin:0;overflow:hidden} a-scene{position:fixed;inset:0}</style>
+  </head>
+  <body>
+    <a-scene
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      embedded
+    >
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-  <a-scene mindar-image="imageTargetSrc: ./targets (1).mind autoStart: false;"
-           vr-mode-ui="enabled: false"
-           device-orientation-permission-ui="enabled: false"
-           embedded>
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-    <a-entity mindar-image-target="targetIndex: 0">
-      <a-box depth="0.05" width="1" height="0.6"
-             material="opacity:.8;transparent:true;color:#39f"></a-box>
-      <a-text value="FOUND!" align="center" position="0 0.4 0.03"></a-text>
-    </a-entity>
-  </a-scene>
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-box depth="0.05" width="1" height="0.6"
+               material="opacity:.8;transparent:true;color:#39f"></a-box>
+        <a-text value="FOUND!" align="center" position="0 0.4 0.03"></a-text>
+      </a-entity>
+    </a-scene>
 
-  <script>
-    const logEl = document.getElementById('log');
-    const log = m => { console.log(m); logEl.textContent += (typeof m==='string'?m:JSON.stringify(m))+"\n"; }
+    <script>
+      const scene = document.querySelector('a-scene');
 
-    const scene = document.querySelector('a-scene');
-    const btn = document.getElementById('startBtn');
-
-    scene.addEventListener('loaded', () => {
-      const comps = Object.keys(scene.components||{});
-      log('a-scene loaded. Components: '+comps.join(', '));
-      if (scene.components['mindar-image']) {
-        log('mindar-image montado');
-        btn.disabled = false; // garante que o botão habilita
-      } else {
-        log('mindar-image NÃO montou');
-      }
-    });
-
-    scene.addEventListener('arReady', ()=>log('arReady'));
-    scene.addEventListener('arError', e=>log('arError: '+(e?.detail?.message||'')));
-    scene.addEventListener('targetFound', e=>log('targetFound '+JSON.stringify(e.detail)));
-    scene.addEventListener('targetLost', e=>log('targetLost '+JSON.stringify(e.detail)));
-
-    btn.addEventListener('click', async () => {
-      log('?? botão clicado');
-      try {
-        const res = await fetch('./targets.mind', {method:'HEAD'});
-        log('HEAD ./targets.mind ? '+res.status);
-        if (!res.ok) { log('? targets.mind não encontrado/caminho errado'); return; }
-
-        await scene.components['mindar-image'].start();
-        document.getElementById('ui').style.display='none';
-        log('?? câmera iniciada');
-      } catch (e) {
-        log('start() falhou: '+(e?.message||e));
-      }
-    });
-  </script>
-</body>
+      // Fallback: se por algum motivo não autostartar, chamamos o system.start()
+      scene.addEventListener('loaded', () => {
+        const sys = scene.systems && scene.systems['mindar-image-system'];
+        if (sys && typeof sys.start === 'function') {
+          // pequeno atraso ajuda em alguns navegadores
+          setTimeout(() => { try { sys.start(); } catch(e) { console.warn(e); } }, 50);
+        }
+      });
+    </script>
+  </body>
 </html>
