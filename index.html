@@ -1,10 +1,11 @@
 
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  </head>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+</head>
   <body>
     <a-scene mindar-image="imageTargetSrc: ./targets (2).mind" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       <a-assets timeout="20000">
@@ -15,12 +16,11 @@
 
       <a-entity mindar-image-target="targetIndex: 0">
 
-        <a-entity
-          gltf-model="#cyberBrain"
+        <a-gltf-model
           position="0 0 0.05"
           rotation="0 0 0"
           scale="0.2 0.2 0.2"
-          animation-mixer="clip: Animation; loop: repeat">
+          animation-mixer>
         </a-entity>
       </a-entity>
     </a-scene>
